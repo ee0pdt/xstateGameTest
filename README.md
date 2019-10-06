@@ -1,2 +1,0 @@
-# xstateGameTest
-Created with CodeSandbox
