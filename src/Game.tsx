@@ -1,128 +1,74 @@
 import * as React from "react";
 import { useMachine } from "@xstate/react";
-import { Machine, spawn, send, sendParent } from "xstate";
-import { assign } from "xstate";
-
-const playerMachine = Machine(
-  {
-    id: "player",
-    initial: "alive",
-    context: {
-      lives: 3
-    },
-    states: {
-      alive: {
-        on: {
-          "": [{ target: "dead", cond: "noLivesLeft" }],
-          LOSE_LIFE: {
-            actions: assign({
-              lives: context => context.lives - 1
-            })
-          }
-        }
-      },
-      dead: {
-        on: {
-          entry: {
-            actions: sendParent(context => ({
-              type: "PLAYER_DIED",
-              data: context
-            }))
-          }
-        }
-      }
-    }
-  },
-  {
-    guards: {
-      noLivesLeft: (context, event) => {
-        // check if player won
-        return context.lives < 1;
-      }
-    }
-  }
-);
-
-const gameMachine = Machine(
-  {
-    id: "game",
-    initial: "playing",
-    context: {
-      points: 0,
-      playerRef: null
-    },
-    states: {
-      playing: {
-        entry: assign({
-          playerRef: () => spawn(playerMachine, { sync: true })
-        }),
-        on: {
-          // Transient transition
-          // Will transition to either 'win' or 'lose' immediately upon
-          // (re)entering 'playing' state if the condition is met.
-          "": [{ target: "win", cond: "didPlayerWin" }],
-          // Self-transition
-          AWARD_POINTS: {
-            actions: assign({
-              points: context => context.points + 50
-            })
-          },
-          SHOOT_PLAYER: {
-            actions: send("LOSE_LIFE", {
-              to: context => context.playerRef
-            })
-          },
-          PLAYER_DIED: {
-            target: "lose"
-          }
-        }
-      },
-      win: {
-        on: {
-          RESTART: {
-            target: "playing",
-            actions: assign({ points: 0 })
-          }
-        }
-      },
-      lose: {
-        on: {
-          RESTART: {
-            target: "playing",
-            actions: assign({ points: 0 })
-          }
-        }
-      }
-    }
-  },
-  {
-    guards: {
-      didPlayerWin: (context, event) => {
-        // check if player won
-        return context.points > 99;
-      }
-    }
-  }
-);
+import gameMachine, { GameContext } from "./GameMachine";
+import PlayerIcon from "./Components/PlayerIcon";
 
 export const Game = () => {
   const [current, send] = useMachine(gameMachine);
 
-  if (current.value !== "playing") {
-    return (
-      <>
-        <p>Gameover, you {current.value === "win" ? "won" : "lost"}</p>
-        <button onClick={() => send("RESTART")}>Restart</button>
-      </>
-    );
-  }
+  const context = current.context as GameContext;
+
+  const playerRef = context.playerRef;
+  const playerState = playerRef.state;
 
   return (
     <>
-      <p>You have {current.context.points} XP</p>
-      <p>You have {current.context.playerRef.state.context.lives} lives</p>
-      <button onClick={() => send("AWARD_POINTS")}>Give me points</button>
-      <button onClick={() => send("SHOOT_PLAYER")}>Shoot Player</button>
+      <p>
+        Gems:{" "}
+        {Array(Math.floor(context.points / 10))
+          .fill("💎")
+          .map((item, index) => (
+            <span role="img" aria-label="gem" key={index}>
+              {item}
+            </span>
+          ))}
+        {context.points}
+      </p>
+      {playerState.context.lives > 0 && (
+        <div>
+          Lives:{" "}
+          {Array(playerState.context.lives)
+            .fill("❤️")
+            .map((item, index) => (
+              <span role="img" aria-label="heart" key={index}>
+                {item}
+              </span>
+            ))}{" "}
+        </div>
+      )}
+      <p>Player is {playerState.value}</p>
+
+      <PlayerIcon state={playerState.value as string} />
+
+      {current.value === "playing" && playerState.value === "alive" && (
+        <>
+          <p>
+            Box number {context.boxNumber} contains up to{" "}
+            {context.currentBox && context.currentBox.gems} gems
+          </p>
+          <p>
+            Risk of death is {context.currentBox && context.currentBox.risk} %
+          </p>
+          <p>The box costs 💎{context.currentBox && context.currentBox.cost}</p>
+          <button onClick={() => send("ACCEPT_BOX")}>
+            I'll take that risk
+          </button>
+          <button onClick={() => send("REJECT_BOX")}>Pass</button>
+        </>
+      )}
+
+      {current.value !== "playing" && (
+        <>
+          <p>Gameover, you {current.value === "win" ? "won" : "lost"}</p>
+          <button onClick={() => send("RESTART")}>Restart</button>
+        </>
+      )}
+
+      {playerState.value === "respawning" && (
+        <>
+          <button onClick={() => send("RESPAWN_PLAYER")}>Respawn</button>
+        </>
+      )}
     </>
   );
 };
