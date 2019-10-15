@@ -15,7 +15,6 @@ export interface GameStateSchema {
 interface IBox {
   gems: number;
   risk: number;
-  cost: number;
 }
 
 export type EVENT_AWARD_POINTS = { type: "AWARD_POINTS"; total: number };
@@ -135,10 +134,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
     actions: {
       awardBoxWinnings: assign(
         (context: GameContext, event: EVENT_NOTIFY_BOX_CONTENTS) => ({
-          points:
-            context.points -
-            event.data.cost +
-            Math.round(Math.random() * event.data.gems)
+          points: context.points + Math.round(Math.random() * event.data.gems)
         })
       ),
       resetGame: assign((context: GameContext, event: GameEvent) => ({

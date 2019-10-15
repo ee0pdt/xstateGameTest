@@ -1,9 +1,13 @@
-import { Machine, sendParent, assign, send } from "xstate";
-import { GameEvent } from "./GameMachine";
+import { Machine, sendParent, assign } from "xstate";
 
 export interface BoxStateSchema {
   states: {
-    presented: {};
+    countdown: {
+      states: {
+        idle: {};
+        dropGems: {};
+      };
+    };
     rejected: {};
     accepted: {};
   };
@@ -17,17 +21,36 @@ export type BoxEvent =
 export type BoxContext = {
   gems: number;
   risk: number;
-  cost: number;
+};
+
+const countdownStates = {
+  states: {
+    idle: {
+      after: {
+        100: "dropGems"
+      }
+    },
+    dropGems: {
+      exit: ["notifyParentOfRiskReward"],
+      after: {
+        100: "idle"
+      },
+      entry: [
+        assign((context: BoxContext, event: BoxEvent) => ({
+          gems: context.gems - 2
+        }))
+      ]
+    }
+  }
 };
 
 export const boxMachine = Machine<BoxContext, BoxStateSchema, BoxEvent>(
   {
     id: "box",
-    initial: "presented",
+    initial: "countdown",
     context: {
-      gems: Math.round(Math.random() * 100),
-      cost: Math.round(Math.random() * 20),
-      risk: Math.round(Math.random() * 100)
+      gems: Math.round(Math.random() * 200),
+      risk: Math.round(Math.random() * 50)
     },
     on: {
       RESET: {
@@ -37,22 +60,21 @@ export const boxMachine = Machine<BoxContext, BoxStateSchema, BoxEvent>(
           })),
           assign((context: BoxContext, event: BoxEvent) => ({
             risk: Math.round(Math.random() * 100)
-          })),
-          assign((context: BoxContext, event: BoxEvent) => ({
-            cost: Math.round(Math.random() * 20)
           }))
         ],
-        target: "presented"
+        target: "countdown"
       }
     },
     states: {
-      presented: {
-        entry: ["notifyParentOfRiskReward"],
+      countdown: {
+        // entry: ["notifyParentOfRiskReward"],
         on: {
           ACCEPT: {
             target: "accepted"
           }
-        }
+        },
+        initial: "idle",
+        ...countdownStates
       },
       accepted: {
         entry: ["spinWheelOfDeath"]

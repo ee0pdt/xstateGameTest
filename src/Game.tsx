@@ -2,6 +2,7 @@ import * as React from "react";
 import { useMachine } from "@xstate/react";
 import gameMachine, { GameContext } from "./GameMachine";
 import PlayerIcon from "./Components/PlayerIcon";
+import ErrorBoundary from "./Components/ErrorBoundary";
 
 export const Game = () => {
   const [current, send] = useMachine(gameMachine);
@@ -12,7 +13,7 @@ export const Game = () => {
   const playerState = playerRef.state;
 
   return (
-    <>
+    <ErrorBoundary>
       <p>
         Gems:{" "}
         {Array(Math.floor(context.points / 10))
@@ -49,7 +50,6 @@ export const Game = () => {
           <p>
             Risk of death is {context.currentBox && context.currentBox.risk} %
           </p>
-          <p>The box costs 💎{context.currentBox && context.currentBox.cost}</p>
           <button onClick={() => send("ACCEPT_BOX")}>
             I'll take that risk
           </button>
@@ -69,7 +69,7 @@ export const Game = () => {
           <button onClick={() => send("RESPAWN_PLAYER")}>Respawn</button>
         </>
       )}
-    </>
+    </ErrorBoundary>
   );
 };
 
