@@ -21,6 +21,7 @@ export type BoxEvent =
 export type BoxContext = {
   gems: number;
   risk: number;
+  boxNumber: number;
 };
 
 const countdownStates = {
@@ -50,16 +51,16 @@ export const boxMachine = Machine<BoxContext, BoxStateSchema, BoxEvent>(
     initial: "countdown",
     context: {
       gems: Math.round(Math.random() * 200),
-      risk: Math.round(Math.random() * 50)
+      risk: Math.round(Math.random() * 50),
+      boxNumber: 1
     },
     on: {
       RESET: {
         actions: [
           assign((context: BoxContext, event: BoxEvent) => ({
-            gems: Math.round(Math.random() * 100)
-          })),
-          assign((context: BoxContext, event: BoxEvent) => ({
-            risk: Math.round(Math.random() * 100)
+            gems: Math.round(Math.random() * 100),
+            risk: Math.round(Math.random() * 100),
+            boxNumber: context.boxNumber + 1
           }))
         ],
         target: "countdown"

@@ -44,8 +44,8 @@ export const Game = () => {
       {current.value === "playing" && playerState.value === "alive" && (
         <>
           <p>
-            Box number {context.boxNumber} contains up to{" "}
-            {context.currentBox && context.currentBox.gems} gems
+            Box number {context.currentBox && context.currentBox.boxNumber}{" "}
+            contains up to {context.currentBox && context.currentBox.gems} gems
           </p>
           <p>
             Risk of death is {context.currentBox && context.currentBox.risk} %

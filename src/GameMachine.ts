@@ -12,15 +12,10 @@ export interface GameStateSchema {
   };
 }
 
-interface IBox {
-  gems: number;
-  risk: number;
-}
-
 export type EVENT_AWARD_POINTS = { type: "AWARD_POINTS"; total: number };
 export type EVENT_NOTIFY_BOX_CONTENTS = {
   type: "NOTIFY_BOX_CONTENTS";
-  data: IBox;
+  data: BoxContext;
 };
 
 export type GameEvent =
@@ -40,8 +35,7 @@ export type GameContext = {
   points: number;
   playerRef?: Actor<PlayerContext, PlayerEvent>;
   boxRef?: Actor<BoxContext, BoxEvent>;
-  currentBox?: IBox;
-  boxNumber: number;
+  currentBox?: BoxContext;
 };
 
 export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
@@ -52,8 +46,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
       points: 0,
       playerRef: undefined,
       boxRef: undefined,
-      currentBox: undefined,
-      boxNumber: 0
+      currentBox: undefined
     },
     on: {
       RESTART: {
@@ -108,11 +101,6 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
               assign(
                 (context: GameContext, event: EVENT_NOTIFY_BOX_CONTENTS) => ({
                   currentBox: event.data
-                })
-              ),
-              assign(
-                (context: GameContext, event: EVENT_NOTIFY_BOX_CONTENTS) => ({
-                  boxNumber: context.boxNumber + 1
                 })
               )
             ]
