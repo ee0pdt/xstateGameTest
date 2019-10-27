@@ -1,4 +1,8 @@
 import { Machine, sendParent, assign } from "xstate";
+import { MAX_GEMS_PER_BOX, MAX_RISK_PER_BOX } from "./Game";
+
+const INITIAL_GEM_VALUE = 1;
+const INITIAL_RISK_VALUE = 1;
 
 export interface BoxStateSchema {
   states: {
@@ -38,7 +42,16 @@ const countdownStates = {
       },
       entry: [
         assign((context: BoxContext, event: BoxEvent) => ({
-          gems: context.gems - 2
+          gems:
+            context.gems < MAX_GEMS_PER_BOX
+              ? Math.ceil(context.gems * 1.3)
+              : MAX_GEMS_PER_BOX,
+          risk:
+            context.risk < MAX_RISK_PER_BOX
+              ? context.gems < 50
+                ? 0
+                : context.risk + context.gems
+              : MAX_RISK_PER_BOX
         }))
       ]
     }
@@ -50,16 +63,16 @@ export const boxMachine = Machine<BoxContext, BoxStateSchema, BoxEvent>(
     id: "box",
     initial: "countdown",
     context: {
-      gems: Math.round(Math.random() * 200),
-      risk: Math.round(Math.random() * 50),
+      gems: INITIAL_GEM_VALUE,
+      risk: INITIAL_RISK_VALUE,
       boxNumber: 1
     },
     on: {
       RESET: {
         actions: [
           assign((context: BoxContext, event: BoxEvent) => ({
-            gems: Math.round(Math.random() * 100),
-            risk: Math.round(Math.random() * 100),
+            gems: INITIAL_GEM_VALUE,
+            risk: INITIAL_RISK_VALUE,
             boxNumber: context.boxNumber + 1
           }))
         ],

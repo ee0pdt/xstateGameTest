@@ -3,6 +3,10 @@ import { useMachine } from "@xstate/react";
 import gameMachine, { GameContext } from "./GameMachine";
 import PlayerIcon from "./Components/PlayerIcon";
 import ErrorBoundary from "./Components/ErrorBoundary";
+import { Button, LinearProgress } from "@material-ui/core";
+
+export const MAX_GEMS_PER_BOX = 100;
+export const MAX_RISK_PER_BOX = 100;
 
 export const Game = () => {
   const [current, send] = useMachine(gameMachine);
@@ -11,6 +15,14 @@ export const Game = () => {
 
   const playerRef = context.playerRef;
   const playerState = playerRef.state;
+
+  const riskPercent = context.currentBox
+    ? (context.currentBox.risk / MAX_RISK_PER_BOX) * 100
+    : 0;
+
+  const gemPercent = context.currentBox
+    ? (context.currentBox.gems / MAX_GEMS_PER_BOX) * 100
+    : 0;
 
   return (
     <ErrorBoundary>
@@ -47,13 +59,22 @@ export const Game = () => {
             Box number {context.currentBox && context.currentBox.boxNumber}{" "}
             contains up to {context.currentBox && context.currentBox.gems} gems
           </p>
-          <p>
-            Risk of death is {context.currentBox && context.currentBox.risk} %
-          </p>
-          <button onClick={() => send("ACCEPT_BOX")}>
+          <LinearProgress
+            variant="determinate"
+            color="primary"
+            value={gemPercent}
+          />
+          {riskPercent > 0 && (
+            <LinearProgress
+              variant="determinate"
+              color="secondary"
+              value={riskPercent}
+            />
+          )}
+          <Button onClick={() => send("ACCEPT_BOX")}>
             I'll take that risk
-          </button>
-          <button onClick={() => send("REJECT_BOX")}>Pass</button>
+          </Button>
+          {/* <button onClick={() => send("REJECT_BOX")}>Pass</button> */}
         </>
       )}
 

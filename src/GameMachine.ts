@@ -4,6 +4,8 @@ import { Actor } from "xstate/lib/Actor";
 import boxMachine, { BoxContext, BoxEvent } from "./BoxMachine";
 import { log } from "xstate/lib/actions";
 
+const WIN_POINTS = 10000;
+
 export interface GameStateSchema {
   states: {
     playing: {};
@@ -36,22 +38,29 @@ export type GameContext = {
   playerRef?: Actor<PlayerContext, PlayerEvent>;
   boxRef?: Actor<BoxContext, BoxEvent>;
   currentBox?: BoxContext;
+  winPoints: number;
+};
+
+const INITIAL_STATE = {
+  points: 0,
+  playerRef: undefined,
+  boxRef: undefined,
+  currentBox: undefined,
+  winPoints: WIN_POINTS
 };
 
 export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
   {
     id: "game",
     initial: "playing",
-    context: {
-      points: 0,
-      playerRef: undefined,
-      boxRef: undefined,
-      currentBox: undefined
-    },
+    context: INITIAL_STATE,
     on: {
       RESTART: {
-        target: "playing",
-        actions: ["resetGame"]
+        target: "playing"
+        // actions: [
+        //   () => spawn(boxMachine),
+        //   () => spawn(playerMachine, { sync: true })
+        // ]
       }
     },
     states: {
@@ -59,8 +68,11 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
       lose: {},
       playing: {
         entry: assign<GameContext>({
-          playerRef: () => spawn(playerMachine, { sync: true }),
-          boxRef: () => spawn(boxMachine)
+          ...INITIAL_STATE,
+          playerRef: context =>
+            context.playerRef === undefined &&
+            spawn(playerMachine, { sync: true }),
+          boxRef: context => context.boxRef === undefined && spawn(boxMachine)
         }),
         on: {
           "": [{ target: "win", cond: "didPlayerWin" }],
@@ -76,9 +88,7 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
             })
           },
           RESPAWN_PLAYER: {
-            actions: send("RESPAWN", {
-              to: context => context.playerRef
-            })
+            actions: ["newBox", "respawn"]
           },
           PLAYER_DIED: {
             target: "lose",
@@ -125,18 +135,21 @@ export const gameMachine = Machine<GameContext, GameStateSchema, GameEvent>(
           points: context.points + Math.round(Math.random() * event.data.gems)
         })
       ),
-      resetGame: assign((context: GameContext, event: GameEvent) => ({
-        points: 0
-      })),
+      resetGame: assign(
+        (context: GameContext, event: GameEvent) => INITIAL_STATE
+      ),
       newBox: send("RESET", {
         to: context => context.boxRef
       }),
-      handleExplosion: send("SHOOT_PLAYER")
+      handleExplosion: send("SHOOT_PLAYER"),
+      respawn: send("RESPAWN", {
+        to: context => context.playerRef
+      })
     },
     guards: {
       didPlayerWin: (context: GameContext, event: GameEvent) => {
         // check if player won
-        return context.points > 99;
+        return context.points > WIN_POINTS;
       }
     }
   }

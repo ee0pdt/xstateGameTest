@@ -5,6 +5,7 @@
   "keywords": [],
   "main": "src/index.tsx",
   "dependencies": {
+    "@material-ui/core": "4.5.1",
     "@xstate/react": "0.7.1",
     "react": "16.8.4",
     "react-dom": "16.8.4",
